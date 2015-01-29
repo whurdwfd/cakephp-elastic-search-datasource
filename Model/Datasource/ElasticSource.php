@@ -722,7 +722,7 @@ class ElasticSource extends DataSource {
 		$query = compact('query', 'size', 'sort', 'from', 'fields', 'facets');
 
 		if ($Model->findQueryType === 'count') {
-			return $query['query'];
+			return $query;
 		}
 
 		return $query;
