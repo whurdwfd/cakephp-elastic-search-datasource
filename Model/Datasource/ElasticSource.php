@@ -668,10 +668,10 @@ class ElasticSource extends DataSource {
 				'key' => 'facets',
 				'onEmpty' => 'skip'
 			),
-			'query' => array(
-				'key' => 'query',
+			'aggs' => array(
+				'key' => 'aggs',
 				'onEmpty' => 'skip'
-			),
+			)
 		);
 
 		$queryData['conditions'] = $this->parseConditions($Model, $queryData['conditions']);
@@ -722,11 +722,13 @@ class ElasticSource extends DataSource {
 		}
 
 
-		$query = compact('query', 'size', 'sort', 'from', 'fields', 'facets');
+		$query = compact('query', 'size', 'sort', 'from', 'fields', 'facets', 'aggs');
 
 		if ($Model->findQueryType === 'count') {
 			return $query;
 		}
+
+		debug($query);
 
 		return $query;
 	}
@@ -1397,6 +1399,7 @@ class ElasticSource extends DataSource {
 	}
 
 	public function execute($method = null, $type = null, $api = null, $data = array()) {
+		debug($data);
 			// Being called from Fixture
 			if (is_array($type) && key($type) === 'log') {
 				return true;
@@ -1491,6 +1494,7 @@ class ElasticSource extends DataSource {
  * @author David Kullmann
  */
 	public function filterResults($results = array()) {
+		debug($results);
 		if (!empty($this->currentModel)) {
 			if ($this->currentModel->findQueryType === 'count') {
 				return isset($results['count']) ? $results['count'] : $results;
