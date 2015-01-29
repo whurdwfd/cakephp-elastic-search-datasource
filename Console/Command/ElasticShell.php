@@ -259,7 +259,6 @@ class ElasticShell extends AppShell {
 		$this->out('Retrieving data from mysql starting on ' . $date);
 
 		$order = array($this->Model->alias.'.'.$field => 'ASC');
-		$contain = false;
 
 		$records = array();
 
@@ -284,14 +283,24 @@ class ElasticShell extends AppShell {
 				$conditions = $this->Model->syncConditions($field, $date, $this->params);
 			}
 
+			if (method_exists($this->Model, 'beforeIndexFind')) {
+				$findParams = $this->Model->beforeIndexFind(compact('conditions', 'limit', 'page', 'order'));
+			} else {
+				$findParams = compact('conditions', 'limit', 'page', 'order');
+			}
+
 			$this->_startTimer($tasks['mysql']);
-			$records = $this->Model->find('all', compact('conditions', 'limit', 'page', 'order'));
+			$records = $this->Model->find('all', $findParams);
 			$this->_endTimer($tasks['mysql']);
 
 			if (!empty($records)) {
 
 				$this->Model->create();
 				$this->Model->setDataSource('index');
+
+				if (method_exists($this->Model, 'beforeIndex')) {
+					$records = $this->Model->beforeIndex($records);
+				}
 
 				$this->_startTimer($tasks['saving']);
 				if ($fast) {
