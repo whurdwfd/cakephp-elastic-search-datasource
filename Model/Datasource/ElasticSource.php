@@ -218,11 +218,14 @@ class ElasticSource extends DataSource {
 
 		$document = array($Model->alias => array_combine($fields, $values));
 
+		$id = $this->_findKey($Model, $document);
+		if (!empty($id) && empty($document['_id'])) {
+			$document['_id'] = $id;
+		}
+
 		if ($this->inTransaction()) {
 			return $this->addToDocument($Model, $document);
 		}
-
-		$id = $this->_findKey($Model, $document);
 
 		if (!$id) {
 			$id = null;
@@ -1527,6 +1530,11 @@ class ElasticSource extends DataSource {
 				$model[$this->currentModel->alias][$this->currentModel->primaryKey] = $results['_id'];
 			}
 			return array($model);
+		}
+
+		//TODO: Provide better error handling and reporting
+		if (!empty($results['errors']) && $results['errors'] === true) {
+			return false;
 		}
 		return $results;
 	}
