@@ -131,7 +131,7 @@ Class IndexableBehavior extends ModelBehavior {
 		$ds = $Model->getDataSource();
 		$ds->begin();
 		foreach ($documents as $document) {
-			if ($geoFields) {
+			if ($geoFields && !empty($document[$Model->alias][$latitude]) && !empty($document[$Model->alias][$longitude])) {
 				$document[$alias][$location] = array(
 					'lat' => $document[$Model->alias][$latitude],
 					'lon' => $document[$Model->alias][$longitude]

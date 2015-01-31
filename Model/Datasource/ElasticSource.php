@@ -574,10 +574,14 @@ class ElasticSource extends DataSource {
  */
 	public function addToDocument(Model $Model, $document = array()) {
 		$this->_setupTransaction($Model, $document);
-		$this->_document[$this->_id] = Set::merge($this->_document[$this->_id], $document);
+		$this->_document[$this->_id] = Hash::merge($this->_document[$this->_id], $document);
 		if ($this->_parent !== null) {
 			$this->_document[$this->_id]['_parent'] = $this->_parent;
 			$this->_parent = null;
+		}
+
+		if ($this->_id !== null) {
+			$this->_document[$this->_id]['_id'] = $this->_id;
 		}
 		return true;
 	}
@@ -721,16 +725,11 @@ class ElasticSource extends DataSource {
 			$query = array($type => compact('query', 'filter'));
 		}
 
-
-		$query = compact('query', 'size', 'sort', 'from', 'fields', 'facets', 'aggs');
-
 		if ($Model->findQueryType === 'count') {
-			return $query;
+			return compact('query', 'size', 'sort', 'from', 'fields');
 		}
 
-		debug($query);
-
-		return $query;
+		return compact('query', 'size', 'sort', 'from', 'fields', 'facets', 'aggs');
 	}
 
 	public function parseQueryType($query) {
@@ -1399,7 +1398,6 @@ class ElasticSource extends DataSource {
 	}
 
 	public function execute($method = null, $type = null, $api = null, $data = array()) {
-		debug($data);
 			// Being called from Fixture
 			if (is_array($type) && key($type) === 'log') {
 				return true;
@@ -1494,7 +1492,6 @@ class ElasticSource extends DataSource {
  * @author David Kullmann
  */
 	public function filterResults($results = array()) {
-		debug($results);
 		if (!empty($this->currentModel)) {
 			if ($this->currentModel->findQueryType === 'count') {
 				return isset($results['count']) ? $results['count'] : $results;
@@ -1506,6 +1503,14 @@ class ElasticSource extends DataSource {
 			}
 			foreach ($results['facets'] as $facet => $data) {
 				$this->currentModel->_facets[$facet] = $data;
+			}
+		}
+		if (!empty($results['aggregations'])) {
+			if (!isset($this->currentModel->_aggregations)) {
+				$this->currentModel->_aggregations = array();
+			}
+			foreach ($results['aggregations'] as $agg => $data) {
+				$this->currentModel->_aggregations[$agg] = $data;
 			}
 		}
 		if (!empty($results['hits'])) {
