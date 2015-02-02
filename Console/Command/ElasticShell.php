@@ -82,7 +82,7 @@ class ElasticShell extends AppShell {
 			->addArgument('model', array('help' => 'Model to use', 'required' => true))
 			->addOption('connection', array(
 				'short' => 'c',
-				'help' => 'Name of datasource connection to be used as defined in database.php',
+				'help' => 'Name of ElasticSource connection to be used as defined in database.php',
 				'default' => 'index'
 			));
 	}
@@ -101,7 +101,12 @@ class ElasticShell extends AppShell {
 			->addOption('limit', array('help' => 'Limit for indexing','short' => 'l', 'default' => 100))
 			->addOption('page', array('help' => 'Page to start indexing on','short' => 'p', 'default' => 1))
 			->addOption('fast', array('help' => 'Fast index (dont use saveAll)','short' => 'f', 'default' => false))
-			->addOption('reset', array('help' => 'Also reset the mappings','short' => 'r', 'default' => 0));
+			->addOption('reset', array('help' => 'Also reset the mappings','short' => 'r', 'default' => 0))
+			->addOption('connection', array(
+				'short' => 'c',
+				'help' => 'Name of ElasticSource connection to be used as defined in database.php',
+				'default' => 'index'
+			));
 	}
 
 /**
@@ -250,7 +255,9 @@ class ElasticShell extends AppShell {
 
 		list($alias, $field) = $this->Model->getModificationField();
 
-		$this->Model->setDataSource('index');
+		$elasticIndex = (!empty($connection)) ? $connection : 'index';
+
+		$this->Model->setDataSource($elasticIndex);
 		$date = $this->Model->lastSync($this->params);
 		$this->Model->setDataSource($db_config);
 
@@ -258,7 +265,7 @@ class ElasticShell extends AppShell {
 
 		$this->out('Retrieving data from mysql starting on ' . $date);
 
-		$order = array($this->Model->alias.'.'.$field => 'ASC');
+		$order = array($this->Model->alias . '.' . $field => 'ASC');
 
 		$records = array();
 
@@ -271,10 +278,10 @@ class ElasticShell extends AppShell {
 		// issues w/how MySQL does pagination. This will paginate properly even
 		// if many models have the same value in the modification field
 		do {
-			if(!empty($records)) {
+			if (!empty($records)) {
 				$record = array_pop($records);
 				$newDate = $record[$alias][$field];
-				if($newDate === $date) {
+				if ($newDate === $date) {
 					$page++;
 				} else {
 					$page = 1;
@@ -296,7 +303,7 @@ class ElasticShell extends AppShell {
 			if (!empty($records)) {
 
 				$this->Model->create();
-				$this->Model->setDataSource('index');
+				$this->Model->setDataSource($elasticIndex);
 
 				if (method_exists($this->Model, 'beforeIndex')) {
 					$records = $this->Model->beforeIndex($records);
@@ -307,7 +314,7 @@ class ElasticShell extends AppShell {
 					try {
 						$results = $this->Model->index($records);
 					} catch (Exception $e) {
-						$this->out("Error: ". $e->getMessage());
+						$this->out("Error: " . $e->getMessage());
 					}
 				} else {
 					$results = $this->Model->saveAll($records, array('deep' => true, 'validate' => false));
