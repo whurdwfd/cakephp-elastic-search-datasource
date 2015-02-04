@@ -675,7 +675,7 @@ class ElasticSource extends DataSource {
 			'aggs' => array(
 				'key' => 'aggs',
 				'onEmpty' => 'skip'
-			)
+			),
 		);
 
 		$queryData['conditions'] = $this->parseConditions($Model, $queryData['conditions']);
@@ -1469,7 +1469,9 @@ class ElasticSource extends DataSource {
 		if (!empty($body->items)) {
 			foreach ($body->items as $item) {
 				if (!empty($item->index->error)) {
-					throw new Exception('ElasticSearch Indexing Error ' . $item->index->error);
+					//TODO better stuff.
+					debug('Error ' . $item->index->error);
+					//throw new Exception('ElasticSearch Indexing Error ' . $item->index->error);
 				}
 			}
 		}
