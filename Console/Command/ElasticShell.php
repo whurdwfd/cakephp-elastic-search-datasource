@@ -49,6 +49,7 @@ class ElasticShell extends AppShell {
 				->addSubcommand('mapping', array('help' => 'Map a model to ElasticSearch', 'parser' => $this->getMappingOptions()))
 				->addSubcommand('index', array('help' => 'Index a model into ElasticSearch', 'parser' => $this->getIndexOptions()))
 				->addSubcommand('copy_index', array('help' => 'Hot copies all data from one index to a new one', 'parser' => $this->getCopyIndexOptions()))
+                ->addSubcommand('find_mapping_errors', array('help' => 'helps find indexing errors', 'parser' => $this->getMappingErrorsOptions()))
 				->addSubcommand('list_sources', array('help' => 'Display output from listSources'));
 	}
 
@@ -101,6 +102,25 @@ class ElasticShell extends AppShell {
 			->addOption('limit', array('help' => 'Limit for indexing','short' => 'l', 'default' => 100))
 			->addOption('page', array('help' => 'Page to start indexing on','short' => 'p', 'default' => 1))
 			->addOption('fast', array('help' => 'Fast index (dont use saveAll)','short' => 'f', 'default' => false))
+			->addOption('reset', array('help' => 'Also reset the mappings','short' => 'r', 'default' => 0))
+			->addOption('connection', array(
+				'short' => 'c',
+				'help' => 'Name of ElasticSource connection to be used as defined in database.php',
+				'default' => 'index'
+			));
+	}
+
+/**
+ * For indexing errors
+ *
+ * @return object OptionParser
+ * @author David Kullmann
+ */
+	public function getMappingErrorsOptions() {
+		return parent::getOptionParser()
+            ->addOption('model', array('help' => 'DB config to use to get the schema', 'default' => 'default', 'short' => 'm'))
+			->addOption('db_config', array('help' => 'DB config to use to get the schema', 'default' => 'default', 'short' => 'd'))
+			->addOption('record_id', array('help' => 'Record id to check','short' => 'i'))
 			->addOption('reset', array('help' => 'Also reset the mappings','short' => 'r', 'default' => 0))
 			->addOption('connection', array(
 				'short' => 'c',
@@ -242,7 +262,6 @@ class ElasticShell extends AppShell {
 	}
 
 	public function index() {
-
 		extract($this->params);
 
 		$model = $this->args[0];
@@ -259,6 +278,7 @@ class ElasticShell extends AppShell {
 
 		$this->Model->setDataSource($elasticIndex);
 		$date = $this->Model->lastSync($this->params);
+
 		$this->Model->setDataSource($db_config);
 
 		$conditions = $this->Model->syncConditions($field, $date, $this->params);
@@ -291,13 +311,14 @@ class ElasticShell extends AppShell {
 			}
 
 			if (method_exists($this->Model, 'beforeIndexFind')) {
-				$findParams = $this->Model->beforeIndexFind(compact('conditions', 'limit', 'page', 'order'));
+				$findParams = $this->Model->beforeIndexFind(compact('conditions', 'limit', 'page', 'order'), $this->params);
 			} else {
 				$findParams = compact('conditions', 'limit', 'page', 'order');
 			}
 
 			$this->_startTimer($tasks['mysql']);
 			$records = $this->Model->find('all', $findParams);
+            $records = Hash::filter($records);
 			$this->_endTimer($tasks['mysql']);
 
 			if (!empty($records)) {
@@ -357,7 +378,15 @@ class ElasticShell extends AppShell {
 
 		$this->Model = $this->_getModel($model);
 
-		$record = $this->Model->find('first');
+        $params = [];
+
+        if (!empty($this->params['record_id'])) {
+            $params['conditions'] = [
+                $this->Model->alias . '.' . $this->Model->primaryKey => $this->params['record_id']
+            ];
+        }
+
+		$record = $this->Model->find('first', $params);
 
 		$this->Model->setDataSource('index');
 

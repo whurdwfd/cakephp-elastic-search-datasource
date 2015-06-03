@@ -146,6 +146,9 @@ Class IndexableBehavior extends ModelBehavior {
 					return false;
 				}
 			}
+            if (empty($document)) {
+                debug($defaults); die;
+            }
 			$ds->addToDocument($Model, $document);
 		}
 		$ds->commit();
@@ -168,6 +171,7 @@ Class IndexableBehavior extends ModelBehavior {
 		$conditions = array('NOT' => array($modificationField => NULL));
 		try {
 			$result = $Model->find('first', compact('fields', 'order', 'conditions'));
+            debug($result);
 		} catch (Exception $e) {
 			$result = null;
 		}

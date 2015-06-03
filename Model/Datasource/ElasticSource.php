@@ -583,6 +583,7 @@ class ElasticSource extends DataSource {
 		if ($this->_id !== null) {
 			$this->_document[$this->_id]['_id'] = $this->_id;
 		}
+
 		return true;
 	}
 
@@ -1428,8 +1429,7 @@ class ElasticSource extends DataSource {
 				default:
 					$response = call_user_func_array(array(&$this->Http, $method), array($uri, $body));
 			}
-
-			$results = $this->_parseResponse($response);
+			$results = $this->_parseResponse($response, $data);
 			$this->logQuery($method, $uri, $body, $results);
 			if (!is_string($body)) {
 				$body = json_encode($body);
@@ -1459,7 +1459,7 @@ class ElasticSource extends DataSource {
  * @return mixed boolean true or false, or body of request as array
  * @author David Kullmann
  */
-	protected function _parseResponse($response) {
+	protected function _parseResponse($response, $data = null) {
 		if (empty($response->body)) {
 			throw new Exception('Missing response');
 		}
@@ -1471,7 +1471,7 @@ class ElasticSource extends DataSource {
 				if (!empty($item->index->error)) {
 					//TODO better stuff.
 					debug('Error ' . $item->index->error);
-					//throw new Exception('ElasticSearch Indexing Error ' . $item->index->error);
+    				//throw new Exception('ElasticSearch Indexing Error ' . $item->index->error);
 				}
 			}
 		}
